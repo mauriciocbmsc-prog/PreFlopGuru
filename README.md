@@ -9,3 +9,7 @@ Na pasta do projeto, execute `python3 -m http.server 3000 --bind 0.0.0.0` e abra
 O slider seleciona as melhores ou piores mãos, com percentual ponderado pelas 1.326 combinações possíveis. Pares têm 6 combinações, mãos do mesmo naipe têm 4 e de naipes diferentes têm 12. O percentual é arredondado para o prefixo de mãos completas mais próximo.
 
 Ranking aproximado pela fórmula de Chen sem arredondamento do score, com desempate pelas cartas mais altas. Não representa equidade calculada nem uma solução GTO.
+
+## Range polarizado
+
+Em “Selecionar a partir das”, escolha “Polarizado · melhores + piores”. Ajuste os dois sliders separadamente (por padrão, 10% melhores e 5% piores). Verde indica as melhores mãos e laranja as piores. A soma é limitada a 100%; aumentar um controle reduz o outro quando necessário. Mãos completas nunca são contadas duas vezes.

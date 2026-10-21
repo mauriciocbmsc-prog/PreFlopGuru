@@ -33,3 +33,40 @@
  #detail{padding-top:12px;font-size:11px}
 }
 @media(max-width:360px){.chart{padding:10px}.grid{gap:2px}.cell{font-size:7px}.legend{gap:7px;font-size:7px}}
+
+/* Compact map and independent ends of a polarized range. */
+@media(min-width:701px){
+ main{max-width:1080px;padding-top:24px}
+ header{height:66px}
+ h1{font-size:34px;margin:15px 0 10px}
+ .intro{margin-bottom:22px}
+ .workspace{grid-template-columns:300px minmax(0,1fr);gap:20px}
+ .controls,.chart{padding:20px}
+ .controls h2{font-size:22px;margin:16px 0 10px}
+ .percent{font-size:64px}
+ #description{margin:10px 0 18px}
+ .presets{margin:16px 0}
+ .chart-heading h2{font-size:17px}
+ .legend{margin:18px 0 14px;gap:12px}
+ .grid{gap:3px}
+ .cell{aspect-ratio:1.22;font-size:11px}
+ .chart-footer{margin:12px 0}
+ #detail{padding-top:12px}
+ .stats{margin-top:18px}
+}
+@media(min-width:701px) and (max-width:850px){.workspace{grid-template-columns:240px minmax(0,1fr)}.cell{font-size:8px}.chart-heading h2{font-size:15px}}
+[hidden]{display:none!important}
+.polarized #range,.polarized .slider-label,.polarized .scale,.polarized .presets{display:none}
+#polar-controls{grid-column:1/-1;margin-top:18px}
+#polar-controls label{display:flex;justify-content:space-between;font-size:12px;color:var(--green);margin:4px 0 12px}
+#polar-controls label[for=worst-range]{color:#f5ae78}
+#polar-controls p{font-size:10px;color:var(--muted);line-height:1.5;margin:0}
+#worst-range::-webkit-slider-thumb{background:#f5ae78;border-color:#66452e}
+#worst-range::-moz-range-thumb{background:#f5ae78;border-color:#66452e}
+.polar-legend{display:flex;flex-wrap:wrap;gap:16px;font-size:10px;margin:18px 0 14px;color:var(--muted)}
+.polar-legend span:first-child{color:var(--green)}
+.polar-legend span:nth-child(2){color:#f5ae78}
+.cell.selected.best-group{background:#a6ed8b;color:#132b2a}
+.cell.selected.worst-group{background:#f5ae78;color:#352010}
+@media(max-width:700px){#polar-controls{margin-top:2px}.polar-legend{font-size:9px;gap:12px}.polarized #direction{width:175px}}
+@media(min-width:851px){main{max-width:1000px}.chart{max-width:620px}}
