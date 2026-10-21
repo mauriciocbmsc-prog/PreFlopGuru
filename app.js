@@ -40,12 +40,12 @@ function paintSlider(element, color) {
 }
 function update() {
   const polarized = direction.value === 'polarized';
-  const percentage = polarized ? Number(bestSlider.value) + Number(worstSlider.value) : Number(slider.value);
+  const percentage = polarized ? Number(bestSlider.value) + 100 - Number(worstSlider.value) : Number(slider.value);
   hands.forEach(h => { h.selected = false; h.group = null; });
   let combos = 0, bestCombos = 0, worstCombos = 0;
   if (polarized) {
     bestCombos = selectPrefix(ranking, Number(bestSlider.value), 'best');
-    worstCombos = selectPrefix([...ranking].reverse(), Number(worstSlider.value), 'worst');
+    worstCombos = selectPrefix([...ranking].reverse(), 100 - Number(worstSlider.value), 'worst');
     combos = bestCombos + worstCombos;
   } else combos = selectPrefix(direction.value === 'best' ? ranking : [...ranking].reverse(), percentage, null);
   document.querySelector('.controls').classList.toggle('polarized', polarized);
@@ -60,21 +60,38 @@ function update() {
   });
   document.querySelector('#value').textContent = percentage;
   document.querySelector('#best-value').textContent = bestSlider.value + '%';
-  document.querySelector('#worst-value').textContent = worstSlider.value + '%';
+  document.querySelector('#worst-value').textContent = (100 - Number(worstSlider.value)) + '%';
   document.querySelector('#count').textContent = hands.filter(h => h.selected).length;
   document.querySelector('#combos').textContent = combos.toLocaleString('pt-BR');
   const format = n => (n / 1326 * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
   document.querySelector('#precision').textContent = `Range efetivo: ${format(combos)}%` + (polarized ? ` · melhores ${format(bestCombos)}% + piores ${format(worstCombos)}%.` : ' · mãos completas.');
   document.querySelector('#description').textContent = polarized ? 'Dois extremos. Um único range.' : direction.value === 'worst' ? 'Explore as mãos mais fracas do ranking.' : percentage <= 15 ? 'Poucas mãos. Muita força.' : percentage <= 30 ? 'Um range seletivo para começar.' : percentage < 70 ? 'Mais possibilidades entram no jogo.' : 'Um range amplo para explorar.';
-  paintSlider(slider, '#a6ed8b'); paintSlider(bestSlider, '#a6ed8b'); paintSlider(worstSlider, '#f5ae78');
+  paintSlider(slider, '#a6ed8b');
+  document.querySelector('.dual-track').style.background = `linear-gradient(to right,#a6ed8b 0%,#a6ed8b ${bestSlider.value}%,#34404b ${bestSlider.value}%,#34404b ${worstSlider.value}%,#f5ae78 ${worstSlider.value}%,#f5ae78 100%)`;
+  bestSlider.setAttribute('aria-valuetext', `${bestSlider.value}% melhores mãos`);
+  worstSlider.setAttribute('aria-valuetext', `${100 - Number(worstSlider.value)}% piores mãos`);
   document.querySelectorAll('[data-value]').forEach(b => { const active = Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
   detail();
 }
 slider.addEventListener('input', update);
 direction.addEventListener('change', update);
-for (const [changed, other] of [[bestSlider, worstSlider], [worstSlider, bestSlider]]) changed.addEventListener('input', () => {
-  other.value = Math.min(Number(other.value), 100 - Number(changed.value));
+bestSlider.addEventListener('input', () => {
+  bestSlider.value = Math.min(Number(bestSlider.value), Number(worstSlider.value));
   update();
+});
+worstSlider.addEventListener('input', () => {
+  worstSlider.value = Math.max(Number(worstSlider.value), Number(bestSlider.value));
+  update();
+});
+// When handles meet, keep the handle that can move toward the pointer on top.
+const dual = document.querySelector('.dual-slider');
+dual.addEventListener('pointermove', event => {
+  if (event.buttons) return;
+  const rect = dual.getBoundingClientRect();
+  const position = (event.clientX - rect.left) / rect.width * 100;
+  const middle = (Number(bestSlider.value) + Number(worstSlider.value)) / 2;
+  bestSlider.style.zIndex = position <= middle ? '3' : '2';
+  worstSlider.style.zIndex = position > middle ? '3' : '2';
 });
 document.querySelectorAll('[data-value]').forEach(b => b.addEventListener('click', () => { slider.value = b.dataset.value; update(); }));
 update();

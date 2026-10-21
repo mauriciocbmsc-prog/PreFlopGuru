@@ -12,4 +12,4 @@ Ranking aproximado pela fórmula de Chen sem arredondamento do score, com desemp
 
 ## Range polarizado
 
-Em “Selecionar a partir das”, escolha “Polarizado · melhores + piores”. Ajuste os dois sliders separadamente (por padrão, 10% melhores e 5% piores). Verde indica as melhores mãos e laranja as piores. A soma é limitada a 100%; aumentar um controle reduz o outro quando necessário. Mãos completas nunca são contadas duas vezes.
+Em “Selecionar a partir das”, escolha “Polarizado · melhores + piores”. Ajuste as duas alças (thumbs) na mesma barra (por padrão, 10% melhores e 5% piores). Verde indica as melhores mãos e laranja as piores. A alça verde marca o fim do grupo das melhores (à esquerda); a laranja marca o início das piores (à direita). O centro não é selecionado. As alças não se cruzam; a soma é limitada a 100%. Mãos completas nunca são contadas duas vezes.
