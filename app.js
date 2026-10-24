@@ -72,6 +72,7 @@ for (let row = 0; row < 13; row++) for (let col = 0; col < 13; col++) {
 const ranking = [...hands].sort((a, b) => b.score - a.score || a.high - b.high || a.low - b.low || a.label.localeCompare(b.label));
 const slider = q('#range'), direction = q('#direction');
 let inspected = null;
+let lastAutomaticMode = 'best';
 function detail() {
   if (!inspected) return;
   const h = inspected;
@@ -81,7 +82,14 @@ for (const hand of hands) {
   const cell = document.createElement('button');
   cell.type = 'button'; cell.className = `cell ${hand.type}`; cell.textContent = hand.label;
   const inspect = () => { inspected = hand; detail(); };
-  cell.addEventListener('mouseenter', inspect); cell.addEventListener('focus', inspect); cell.addEventListener('click', inspect);
+  cell.addEventListener('mouseenter', inspect); cell.addEventListener('focus', inspect);
+  cell.addEventListener('click', () => {
+    if (direction.value !== 'manual') lastAutomaticMode = direction.value;
+    direction.value = 'manual';
+    hand.selected = !hand.selected;
+    inspected = hand;
+    update();
+  });
   hand.cell = cell; q('#grid').append(cell);
 }
 const bestSlider = q('#best-range');
@@ -99,44 +107,57 @@ function paintSlider(element, color) {
   element.style.background = `linear-gradient(to right,${color} ${element.value}%,#34404b ${element.value}%)`;
 }
 function update() {
+  const manual = direction.value === 'manual';
   const polarized = direction.value === 'polarized';
-  const percentage = polarized ? Number(bestSlider.value) + 100 - Number(worstSlider.value) : Number(slider.value);
-  hands.forEach(h => { h.selected = false; h.group = null; });
+  if (!manual) lastAutomaticMode = direction.value;
+  const manualCombos = hands.filter(h => h.selected).reduce((sum, h) => sum + h.combos, 0);
+  const percentage = manual ? manualCombos / 1326 * 100 : polarized ? Number(bestSlider.value) + 100 - Number(worstSlider.value) : Number(slider.value);
+  hands.forEach(h => { if (!manual) h.selected = false; h.group = null; });
   let combos = 0, bestCombos = 0, worstCombos = 0;
-  if (polarized) {
+  if (manual) combos = manualCombos;
+  else if (polarized) {
     bestCombos = selectPrefix(ranking, Number(bestSlider.value), 'best');
     worstCombos = selectPrefix([...ranking].reverse(), 100 - Number(worstSlider.value), 'worst');
     combos = bestCombos + worstCombos;
   } else combos = selectPrefix(direction.value === 'best' ? ranking : [...ranking].reverse(), percentage, null);
   q('.controls').classList.toggle('polarized', polarized);
+  q('.controls').classList.toggle('manual', manual);
+  q('#manual-help').hidden = !manual;
   q('#polar-controls').hidden = !polarized;
   q('.polar-legend').hidden = !polarized;
   q('.legend').hidden = polarized;
   hands.forEach(h => {
     h.cell.classList.toggle('selected', h.selected);
+    h.cell.setAttribute('aria-pressed', String(h.selected));
+    h.cell.title = `${h.selected ? 'Remover' : 'Adicionar'} ${h.label} ${h.selected ? 'do' : 'ao'} range`;
     h.cell.classList.toggle('best-group', h.group === 'best');
     h.cell.classList.toggle('worst-group', h.group === 'worst');
     h.cell.setAttribute('aria-label', `${h.label}, ${h.combos} combinações, ${h.group === 'best' ? 'melhores mãos' : h.group === 'worst' ? 'piores mãos' : h.selected ? 'dentro do range' : 'fora do range'}`);
   });
-  q('#value').textContent = percentage;
+  q('#value').textContent = manual ? percentage.toLocaleString('pt-BR', { maximumFractionDigits: 2 }) : percentage;
   q('#best-value').textContent = bestSlider.value + '%';
   q('#worst-value').textContent = (100 - Number(worstSlider.value)) + '%';
   q('#count').textContent = hands.filter(h => h.selected).length;
   q('#combos').textContent = combos.toLocaleString('pt-BR');
-  const format = n => (n / 1326 * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
-  q('#precision').textContent = `Range efetivo: ${format(combos)}%` + (polarized ? ` · melhores ${format(bestCombos)}% + piores ${format(worstCombos)}%.` : ' · mãos completas.');
-  q('#description').textContent = polarized ? 'Dois extremos. Um único range.' : direction.value === 'worst' ? 'Explore as mãos mais fracas do ranking.' : percentage <= 15 ? 'Poucas mãos. Muita força.' : percentage <= 30 ? 'Um range seletivo para começar.' : percentage < 70 ? 'Mais possibilidades entram no jogo.' : 'Um range amplo para explorar.';
+  const format = n => (n / 1326 * 100).toLocaleString('pt-BR', { maximumFractionDigits: manual ? 2 : 1 });
+  q('#precision').textContent = `Range efetivo: ${format(combos)}%` + (manual ? ' · seleção manual.' : '') + (polarized ? ` · melhores ${format(bestCombos)}% + piores ${format(worstCombos)}%.` : ' · mãos completas.');
+  q('#description').textContent = manual ? 'Seu range personalizado, mão por mão.' : polarized ? 'Dois extremos. Um único range.' : direction.value === 'worst' ? 'Explore as mãos mais fracas do ranking.' : percentage <= 15 ? 'Poucas mãos. Muita força.' : percentage <= 30 ? 'Um range seletivo para começar.' : percentage < 70 ? 'Mais possibilidades entram no jogo.' : 'Um range amplo para explorar.';
   paintSlider(slider, '#a6ed8b');
   q('.dual-track').style.background = `linear-gradient(to right,#a6ed8b 0%,#a6ed8b ${bestSlider.value}%,#34404b ${bestSlider.value}%,#34404b ${worstSlider.value}%,#f5ae78 ${worstSlider.value}%,#f5ae78 100%)`;
   bestSlider.setAttribute('aria-valuetext', `${bestSlider.value}% melhores mãos`);
   worstSlider.setAttribute('aria-valuetext', `${100 - Number(worstSlider.value)}% piores mãos`);
-  qa('[data-value]').forEach(b => { const active = Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
+  qa('[data-value]').forEach(b => { const active = !manual && Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
   q('#math-current').textContent = `${hands.filter(h => h.selected).length} tipos selecionados → ${combos.toLocaleString('pt-BR')} / 1.326 combinações × 100 = ${format(combos)}% de chance de receber uma mão deste range.` + (polarized ? ` Melhores: ${bestCombos} combinações; piores: ${worstCombos} combinações; total: ${bestCombos} + ${worstCombos} = ${combos}.` : '');
   detail();
   refreshShowdown(prefix, hands.filter(h => h.selected).map(h => h.label));
 }
 slider.addEventListener('input', update);
 direction.addEventListener('change', update);
+q('#restore-sliders').addEventListener('click', () => {
+  direction.value = lastAutomaticMode;
+  update();
+  direction.focus();
+});
 bestSlider.addEventListener('input', () => {
   bestSlider.value = Math.min(Number(bestSlider.value), Number(worstSlider.value));
   update();

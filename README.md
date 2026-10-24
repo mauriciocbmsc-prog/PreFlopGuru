@@ -25,3 +25,7 @@ Dois editores independentes, lado a lado no desktop e empilhados em telas menore
 ## Verificação
 
 Execute `node --test tests/equity.test.js` para validar o avaliador de showdown, expansão das combinações e amostragem. Sem dependências adicionais.
+
+## Edição manual
+
+Clique em qualquer mão, no Hero ou no Villain, para adicionar ou remover aquele tipo completo do range. O primeiro clique ativa “Personalizado · por clique”, preservando as demais seleções e atualizando o percentual ponderado pelas combinações, a contagem e a simulação. Os sliders ficam ocultos enquanto a seleção é personalizada, pois um percentual sozinho não descreve um range arbitrário. “Voltar aos sliders” recria o range usando os últimos ajustes automáticos. Também é possível selecionar diretamente outro modo no menu. Teclas Enter e Espaço alternam a mão focada; `aria-pressed` informa seu estado.
