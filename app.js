@@ -65,7 +65,7 @@ function refreshShowdown(player, labels) {
   }, 300);
 }
 
-function createRangeEditor(root, prefix) {
+function createRangeEditor(root, prefix, onChange = refreshShowdown) {
   const resolve = selector => selector.replace(/#([\w-]+)/g, (_, id) => `#${prefix}-${id}`);
   const q = selector => selector === '#math-current' ? document.getElementById(`${prefix}-math-current`) : root.querySelector(resolve(selector));
   const qa = selector => root.querySelectorAll(resolve(selector));
@@ -160,7 +160,7 @@ function update() {
   qa('[data-value]').forEach(b => { const active = !manual && Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
   q('#math-current').textContent = `${hands.filter(h => h.selected).length} tipos selecionados → ${combos.toLocaleString('pt-BR')} / 1.326 combinações × 100 = ${format(combos)}% de chance de receber uma mão deste range.` + (polarized ? ` Melhores: ${bestCombos} combinações; piores: ${worstCombos} combinações; total: ${bestCombos} + ${worstCombos} = ${combos}.` : '');
   detail();
-  refreshShowdown(prefix, hands.filter(h => h.selected).map(h => h.label));
+  onChange(prefix, hands.filter(h => h.selected).map(h => h.label));
 }
 slider.addEventListener('input', update);
 direction.addEventListener('change', update);
@@ -193,3 +193,75 @@ update();
 }
 createRangeEditor(document.getElementById("hero"), "hero");
 createRangeEditor(document.getElementById("villain"), "villain");
+
+const tablePositions = [
+  { key: 'utg', label: 'UTG', name: 'Under the gun' },
+  { key: 'hj', label: 'HJ', name: 'Hijack' },
+  { key: 'co', label: 'CO', name: 'Cutoff' },
+  { key: 'btn', label: 'BTN', name: 'Botão' },
+  { key: 'sb', label: 'SB', name: 'Small blind' },
+  { key: 'bb', label: 'BB', name: 'Big blind' }
+];
+let activeSeat = 'utg', tableInitialized = false;
+const tableRanges = new Map();
+function updateSeatRange(key, labels) {
+  tableRanges.set(key, labels);
+  const count = labels.reduce((sum, label) => sum + (label.length === 2 ? 6 : label[2] === 's' ? 4 : 12), 0);
+  const percent = (count / 1326 * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  document.getElementById(`seat-percent-${key}`).textContent = `${percent}%`;
+  document.getElementById(`seat-combos-${key}`).textContent = `${labels.length} mãos · ${count} combos`;
+  const position = tablePositions.find(p => p.key === key);
+  document.getElementById(`seat-${key}`).setAttribute('aria-label', `${position.label}, ${position.name}: ${percent}%, ${labels.length} tipos de mãos e ${count} combinações. Clique para editar.`);
+  if (activeSeat === key) document.getElementById('seat-edit-status').textContent = `${position.label}: ${labels.length} tipos de mãos, ${count} combinações, ${percent}% das mãos iniciais.`;
+}
+function selectSeat(key) {
+  activeSeat = key;
+  const index = tablePositions.findIndex(p => p.key === key), position = tablePositions[index];
+  for (const seat of tablePositions) {
+    document.getElementById(`seat-${seat.key}`).setAttribute('aria-pressed', String(seat.key === key));
+    document.getElementById(`editor-${seat.key}`).hidden = seat.key !== key;
+  }
+  document.getElementById('active-seat-title').textContent = `${position.label} · ${position.name}`;
+  document.getElementById('active-seat-number').textContent = `Jogador ${index + 1} de 6`;
+  updateSeatRange(key, tableRanges.get(key));
+}
+function initializeTable() {
+  if (tableInitialized) return;
+  const template = document.getElementById('seat-editor-template');
+  for (const seat of tablePositions) {
+    const editor = document.createElement('div');
+    editor.className = 'player-panel table-range-editor';
+    editor.id = `editor-${seat.key}`;
+    editor.hidden = seat.key !== activeSeat;
+    editor.setAttribute('role', 'group');
+    editor.setAttribute('aria-label', `Range da posição ${seat.label}`);
+    editor.append(template.content.cloneNode(true));
+    for (const element of editor.querySelectorAll('[id], [for]')) {
+      for (const attribute of ['id', 'for']) if (element.hasAttribute(attribute)) element.setAttribute(attribute, element.getAttribute(attribute).replace(/^seat-/, `${seat.key}-`));
+    }
+    editor.querySelector('[data-role="grid"]').setAttribute('aria-label', `Mãos iniciais da posição ${seat.label}`);
+    document.getElementById('seat-editors').append(editor);
+    createRangeEditor(editor, seat.key, updateSeatRange);
+    document.getElementById(`seat-${seat.key}`).addEventListener('click', () => selectSeat(seat.key));
+  }
+  tableInitialized = true;
+  selectSeat(activeSeat);
+}
+const viewTabs = [...document.querySelectorAll('.view-tabs [role="tab"]')];
+function selectView(tab) {
+  if (tab.id === 'tab-six') initializeTable();
+  document.querySelector('.math-live').hidden = tab.id === 'tab-six';
+  for (const current of viewTabs) {
+    const active = current === tab;
+    current.setAttribute('aria-selected', String(active)); current.tabIndex = active ? 0 : -1;
+    document.getElementById(current.getAttribute('aria-controls')).hidden = !active;
+  }
+}
+for (const tab of viewTabs) {
+  tab.addEventListener('click', () => selectView(tab));
+  tab.addEventListener('keydown', event => {
+    const index = viewTabs.indexOf(tab);
+    const next = event.key === 'Home' ? 0 : event.key === 'End' ? viewTabs.length - 1 : event.key === 'ArrowRight' ? (index + 1) % viewTabs.length : event.key === 'ArrowLeft' ? (index + viewTabs.length - 1) % viewTabs.length : -1;
+    if (next >= 0) { event.preventDefault(); selectView(viewTabs[next]); viewTabs[next].focus(); }
+  });
+}

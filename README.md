@@ -33,3 +33,7 @@ Clique em qualquer mão, no Hero ou no Villain, para adicionar ou remover aquele
 ## Participação por range
 
 A seção abaixo do showdown calcula exatamente as chances de ambos entrarem, apenas Hero, apenas Villain e nenhum entrar. As distribuições sem repetição de cartas totalizam C(52,2) × C(50,2) = 1.624.350; bloqueadores são considerados. Os resultados gerais usam a lei da probabilidade total: apenas um participante ganha automaticamente, ambos usam o showdown e nenhum participante deixa o pote sem atribuição. Não há custos, blinds, apostas ou acumulação entre rodadas; a fração média do pote não representa lucro financeiro. Cenários com ranges vazios continuam definidos. A matemática e a relação limitada com fold equity estão documentadas no item 09.
+
+## Mesa de seis jogadores
+
+A aba “Mesa de 6 jogadores” apresenta UTG, HJ, CO, BTN, SB e BB ao redor de uma mesa. Clique em um lugar para editar seu range: cada posição tem sliders simples, polarização, edição manual e contagem própria. Alterações ficam preservadas ao alternar posições ou abas durante a sessão da página; recarregar reinicia as seleções. Todos começam no mesmo range de 20% solicitado (não é recomendação estratégica por posição). O botão é fixo no BTN. Esta etapa configura ranges e ainda não calcula equidade ou participação multiway; os resultados de dois jogadores permanecem na aba Hero × Villain.
