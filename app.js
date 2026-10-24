@@ -1,3 +1,59 @@
+const selectedRanges = {};
+let simulationWorker = null, simulationTimer = null, simulationRevision = 0;
+function refreshShowdown(player, labels) {
+  selectedRanges[player] = labels;
+  const revision = ++simulationRevision;
+  clearTimeout(simulationTimer);
+  if (simulationWorker) { simulationWorker.terminate(); simulationWorker = null; }
+  const panel = document.querySelector('.equity-status');
+  const status = document.getElementById('simulation-status');
+  const summary = document.getElementById('equity-summary');
+  for (const name of ['win', 'tie', 'loss']) {
+    document.getElementById(`${name}-value`).textContent = '—';
+    document.getElementById(`${name}-gauge`).style.setProperty('--progress', '0%');
+  }
+  summary.textContent = '';
+  panel.setAttribute('aria-busy', 'false');
+  if (!selectedRanges.hero || !selectedRanges.villain) return;
+  if (!selectedRanges.hero.length || !selectedRanges.villain.length) {
+    status.textContent = 'Selecione pelo menos uma mão em cada range para calcular os resultados.';
+    return;
+  }
+  status.textContent = 'Atualizando os resultados para os ranges selecionados…';
+  panel.setAttribute('aria-busy', 'true');
+  simulationTimer = setTimeout(() => {
+    const fail = message => { if (revision !== simulationRevision) return; panel.setAttribute('aria-busy', 'false'); status.textContent = message; if (simulationWorker) simulationWorker.terminate(); simulationWorker = null; };
+    try {
+      simulationWorker = new Worker('equity.js?v=showdown-1');
+      simulationWorker.onerror = () => fail('Não foi possível executar a simulação. Abra o site por um servidor HTTP ou pelo GitHub Pages e recarregue a página.');
+      simulationWorker.onmessage = ({ data }) => {
+        if (revision !== simulationRevision) return;
+        if (data.type === 'error') { fail(data.message); return; }
+        if (data.type === 'progress') { status.textContent = `Simulando boards: ${data.completed.toLocaleString('pt-BR')} de ${data.samples.toLocaleString('pt-BR')}…`; return; }
+        const values = [data.wins, data.ties, data.losses];
+        // Largest-remainder rounding keeps the three displayed percentages at 100.0%.
+        const tenths = values.map(n => n * 1000 / data.samples);
+        const rounded = tenths.map(Math.floor);
+        const order = [0, 1, 2].sort((a, b) => (tenths[b] - rounded[b]) - (tenths[a] - rounded[a]));
+        for (let i = 0, remaining = 1000 - rounded.reduce((a, b) => a + b, 0); i < remaining; i++) rounded[order[i]]++;
+        ['win', 'tie', 'loss'].forEach((name, i) => {
+          document.getElementById(`${name}-value`).textContent = `${(rounded[i] / 10).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+          document.getElementById(`${name}-gauge`).style.setProperty('--progress', `${values[i] / data.samples * 100}%`);
+        });
+        panel.setAttribute('aria-busy', 'false');
+        status.textContent = `Estimativa concluída · ${data.samples.toLocaleString('pt-BR')} simulações · margem aproximada de 95%: até ±0,4 ponto percentual por resultado.`;
+        const equity = (data.wins + data.ties / 2) / data.samples * 100;
+        summary.textContent = `Equidade estimada do Hero: ${equity.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% (vitória + metade dos empates). ${data.validPairs.toLocaleString('pt-BR')} confrontos de combinações compatíveis.`;
+        simulationWorker.terminate(); simulationWorker = null;
+      };
+      let seed = 2166136261;
+      const hero = [...selectedRanges.hero].sort(), villain = [...selectedRanges.villain].sort();
+      for (const char of `${hero.join(',')}|${villain.join(',')}`) seed = Math.imul(seed ^ char.charCodeAt(0), 16777619);
+      simulationWorker.postMessage({ hero, villain, samples: 60000, seed: seed >>> 0 });
+    } catch (_) { fail('A simulação não está disponível neste navegador. Use um navegador atualizado e abra a página por HTTP.'); }
+  }, 300);
+}
+
 function createRangeEditor(root, prefix) {
   const resolve = selector => selector.replace(/#([\w-]+)/g, (_, id) => `#${prefix}-${id}`);
   const q = selector => selector === '#math-current' ? document.getElementById(`${prefix}-math-current`) : root.querySelector(resolve(selector));
@@ -77,6 +133,7 @@ function update() {
   qa('[data-value]').forEach(b => { const active = Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
   q('#math-current').textContent = `${hands.filter(h => h.selected).length} tipos selecionados → ${combos.toLocaleString('pt-BR')} / 1.326 combinações × 100 = ${format(combos)}% de chance de receber uma mão deste range.` + (polarized ? ` Melhores: ${bestCombos} combinações; piores: ${worstCombos} combinações; total: ${bestCombos} + ${worstCombos} = ${combos}.` : '');
   detail();
+  refreshShowdown(prefix, hands.filter(h => h.selected).map(h => h.label));
 }
 slider.addEventListener('input', update);
 direction.addEventListener('change', update);
