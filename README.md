@@ -13,3 +13,7 @@ Ranking aproximado pela fórmula de Chen sem arredondamento do score, com desemp
 ## Range polarizado
 
 Em “Selecionar a partir das”, escolha “Polarizado · melhores + piores”. Ajuste as duas alças (thumbs) na mesma barra (por padrão, 10% melhores e 5% piores). Verde indica as melhores mãos e laranja as piores. A alça verde marca o fim do grupo das melhores (à esquerda); a laranja marca o início das piores (à direita). O centro não é selecionado. As alças não se cruzam; a soma é limitada a 100%. Mãos completas nunca são contadas duas vezes.
+
+## Matemática
+
+A seção ao final da página documenta as combinações, probabilidades de distribuição, ponderação e arredondamento do range, união dos extremos no modo polarizado, score de Chen usado no código e a diferença entre frequência de distribuição e equidade. O exemplo numérico acompanha a seleção atual. Ao incluir novos cálculos no projeto, atualize essa seção com as fórmulas, hipóteses e limitações correspondentes.

@@ -71,6 +71,7 @@ function update() {
   bestSlider.setAttribute('aria-valuetext', `${bestSlider.value}% melhores mãos`);
   worstSlider.setAttribute('aria-valuetext', `${100 - Number(worstSlider.value)}% piores mãos`);
   document.querySelectorAll('[data-value]').forEach(b => { const active = Number(b.dataset.value) === percentage; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
+  document.querySelector('#math-current').textContent = `${hands.filter(h => h.selected).length} tipos selecionados → ${combos.toLocaleString('pt-BR')} / 1.326 combinações × 100 = ${format(combos)}% de chance de receber uma mão deste range.` + (polarized ? ` Melhores: ${bestCombos} combinações; piores: ${worstCombos} combinações; total: ${bestCombos} + ${worstCombos} = ${combos}.` : '');
   detail();
 }
 slider.addEventListener('input', update);
