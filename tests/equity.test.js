@@ -88,3 +88,46 @@ test('identical wide ranges have symmetric outcomes within sampling uncertainty'
   const result = simulate({ hero: labels, villain: labels, samples: 40000, seed: 19 });
   assert(Math.abs((result.wins - result.losses) / result.samples) < 0.018);
 });
+
+test('participation counts account for blockers and exhaustive entry scenarios', () => {
+  const { participation, overallOutcomes } = require('../equity.js');
+  const aa = participation(['AA'], ['AA']);
+  assert.equal(aa.total, 1624350);
+  assert.equal(aa.bothCount, 6);
+  assert.equal(aa.heroOnlyCount, 7344);
+  assert.equal(aa.villainOnlyCount, 7344);
+  assert.notEqual(aa.both, (6 / 1326) ** 2);
+  assert.deepEqual(overallOutcomes(participation([], [])), { hero: 0, tie: 0, villain: 0, neither: 1 });
+  const labels = [], ranks = 'AKQJT98765432';
+  for (let a = 0; a < 13; a++) for (let b = a; b < 13; b++) {
+    if (a === b) labels.push(ranks[a] + ranks[b]); else for (const type of ['s', 'o']) labels.push(ranks[a] + ranks[b] + type);
+  }
+  const all = participation(labels, labels);
+  assert.equal(all.both, 1); assert.equal(all.neither, 0); assert.equal(all.heroOnly, 0); assert.equal(all.villainOnly, 0);
+  assert.deepEqual(overallOutcomes(participation(labels, [])), { hero: 1, tie: 0, villain: 0, neither: 0 });
+  assert.deepEqual(overallOutcomes(participation([], labels)), { hero: 0, tie: 0, villain: 1, neither: 0 });
+  const h = ['AA', 'AKs', '72o'], v = ['AA', 'KK', 'AKo'];
+  // Independently enumerate every ordered, disjoint deal in the whole deck.
+  const key = pair => [...pair].sort((a, b) => a - b).join(',');
+  const hc = new Set(expandRange(h).map(key)), vc = new Set(expandRange(v).map(key));
+  const counts = [0, 0, 0, 0];
+  for (let a = 0; a < 51; a++) for (let b = a + 1; b < 52; b++) for (let c = 0; c < 51; c++) for (let d = c + 1; d < 52; d++) {
+    if (a === c || a === d || b === c || b === d) continue;
+    const hero = hc.has(`${a},${b}`), villain = vc.has(`${c},${d}`);
+    counts[hero ? villain ? 0 : 1 : villain ? 2 : 3]++;
+  }
+  const result = participation(h, v);
+  assert.deepEqual([result.bothCount, result.heroOnlyCount, result.villainOnlyCount, result.neitherCount], counts);
+});
+test('total probability combines conditional showdown and automatic wins', () => {
+  const { participation, overallOutcomes } = require('../equity.js');
+  const entry = participation(['AA', 'AKs'], ['KK', 'AKo']);
+  assert.equal(overallOutcomes(entry), null);
+  const results = overallOutcomes(entry, { wins: 60, ties: 10, losses: 30, samples: 100 });
+  assert.equal(results.hero, entry.heroOnly + entry.both * 0.6);
+  assert(Math.abs(results.tie - entry.both * 0.1) < 1e-15);
+  assert.equal(results.villain, entry.villainOnly + entry.both * 0.3);
+  assert(Math.abs(Object.values(results).reduce((a, b) => a + b, 0) - 1) < 1e-12);
+  const swapped = overallOutcomes(participation(['KK', 'AKo'], ['AA', 'AKs']), { wins: 30, ties: 10, losses: 60, samples: 100 });
+  assert.equal(results.hero, swapped.villain); assert.equal(results.villain, swapped.hero);
+});

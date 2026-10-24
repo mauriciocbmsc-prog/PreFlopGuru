@@ -13,6 +13,27 @@
     }
     return combinations;
   }
+  function participation(hero, villain) {
+    const h = expandRange(hero), v = expandRange(villain);
+    const perCard = new Uint16Array(52), exact = new Set();
+    for (const [a, b] of v) { perCard[a]++; perCard[b]++; exact.add(Math.min(a, b) * 52 + Math.max(a, b)); }
+    let bothCount = 0;
+    for (const [a, b] of h) bothCount += v.length - perCard[a] - perCard[b] + Number(exact.has(Math.min(a, b) * 52 + Math.max(a, b)));
+    const total = 1326 * 1225;
+    const heroOnlyCount = h.length * 1225 - bothCount;
+    const villainOnlyCount = v.length * 1225 - bothCount;
+    const neitherCount = total - bothCount - heroOnlyCount - villainOnlyCount;
+    return { total, bothCount, heroOnlyCount, villainOnlyCount, neitherCount,
+      both: bothCount / total, heroOnly: heroOnlyCount / total,
+      villainOnly: villainOnlyCount / total, neither: neitherCount / total };
+  }
+  function overallOutcomes(entry, showdown) {
+    if (!entry.both) return { hero: entry.heroOnly, tie: 0, villain: entry.villainOnly, neither: entry.neither };
+    if (!showdown) return null;
+    return { hero: entry.heroOnly + entry.both * showdown.wins / showdown.samples,
+      tie: entry.both * showdown.ties / showdown.samples,
+      villain: entry.villainOnly + entry.both * showdown.losses / showdown.samples, neither: entry.neither };
+  }
   function straightHigh(mask) {
     for (let high = 14; high >= 6; high--) if ((mask & (31 << (high - 4))) === (31 << (high - 4))) return high;
     return (mask & 16444) === 16444 ? 5 : 0; // A, 5, 4, 3, 2
@@ -86,7 +107,8 @@
     }
     return { wins, ties, losses, samples, validPairs: size };
   }
-  if (typeof module !== 'undefined' && module.exports) module.exports = { expandRange, evaluate7, simulate };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { expandRange, evaluate7, simulate, participation, overallOutcomes };
+  else if (typeof document !== 'undefined') globalThis.PokerMath = { participation, overallOutcomes };
   else self.onmessage = ({ data }) => {
     try { self.postMessage({ type: 'result', ...simulate(data, p => self.postMessage({ type: 'progress', ...p })) }); }
     catch (error) { self.postMessage({ type: 'error', message: error.message }); }

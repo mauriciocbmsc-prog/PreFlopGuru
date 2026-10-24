@@ -1,5 +1,13 @@
 const selectedRanges = {};
 let simulationWorker = null, simulationTimer = null, simulationRevision = 0;
+function renderParticipation(entry, showdown = null) {
+  const format = value => value > 0 && value < 0.0001 ? '<0,01%' : `${(value * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`;
+  for (const [id, value] of Object.entries({ both: entry.both, 'hero-only': entry.heroOnly, 'villain-only': entry.villainOnly, neither: entry.neither })) document.getElementById(`entry-${id}`).textContent = format(value);
+  const outcomes = PokerMath.overallOutcomes(entry, showdown);
+  for (const name of ['hero', 'tie', 'villain', 'neither']) document.getElementById(`overall-${name}`).textContent = outcomes ? format(outcomes[name]) : name === 'neither' ? format(entry.neither) : '—';
+  document.getElementById('participation-status').textContent = outcomes ? (entry.both ? 'Cenários de entrada calculados exatamente; resultados gerais usam a estimativa do showdown. Percentuais podem somar ligeiramente diferente de 100% por arredondamento.' : 'Sem confrontos entre os ranges: resultados gerais calculados exatamente, sem simular showdown.') : 'Cenários de entrada calculados. Aguardando a simulação para os resultados gerais…';
+  document.getElementById('pot-share').textContent = outcomes ? `Fração média do pote distribuída por rodada: Hero ${format(outcomes.hero + outcomes.tie / 2)} · Villain ${format(outcomes.villain + outcomes.tie / 2)} · não atribuído ${format(outcomes.neither)}. Não é lucro ou retorno financeiro.` : '';
+}
 function refreshShowdown(player, labels) {
   selectedRanges[player] = labels;
   const revision = ++simulationRevision;
@@ -15,6 +23,8 @@ function refreshShowdown(player, labels) {
   summary.textContent = '';
   panel.setAttribute('aria-busy', 'false');
   if (!selectedRanges.hero || !selectedRanges.villain) return;
+  const entry = PokerMath.participation(selectedRanges.hero, selectedRanges.villain);
+  renderParticipation(entry);
   if (!selectedRanges.hero.length || !selectedRanges.villain.length) {
     status.textContent = 'Selecione pelo menos uma mão em cada range para calcular os resultados.';
     return;
@@ -22,14 +32,15 @@ function refreshShowdown(player, labels) {
   status.textContent = 'Atualizando os resultados para os ranges selecionados…';
   panel.setAttribute('aria-busy', 'true');
   simulationTimer = setTimeout(() => {
-    const fail = message => { if (revision !== simulationRevision) return; panel.setAttribute('aria-busy', 'false'); status.textContent = message; if (simulationWorker) simulationWorker.terminate(); simulationWorker = null; };
+    const fail = message => { if (revision !== simulationRevision) return; panel.setAttribute('aria-busy', 'false'); status.textContent = message; document.getElementById('participation-status').textContent = 'Cenários de participação calculados. Os resultados gerais que dependem do showdown estão indisponíveis porque a simulação falhou.'; if (simulationWorker) simulationWorker.terminate(); simulationWorker = null; };
     try {
-      simulationWorker = new Worker('equity.js?v=showdown-1');
+      simulationWorker = new Worker('equity.js?v=participation-1');
       simulationWorker.onerror = () => fail('Não foi possível executar a simulação. Abra o site por um servidor HTTP ou pelo GitHub Pages e recarregue a página.');
       simulationWorker.onmessage = ({ data }) => {
         if (revision !== simulationRevision) return;
         if (data.type === 'error') { fail(data.message); return; }
         if (data.type === 'progress') { status.textContent = `Simulando boards: ${data.completed.toLocaleString('pt-BR')} de ${data.samples.toLocaleString('pt-BR')}…`; return; }
+        renderParticipation(entry, data);
         const values = [data.wins, data.ties, data.losses];
         // Largest-remainder rounding keeps the three displayed percentages at 100.0%.
         const tenths = values.map(n => n * 1000 / data.samples);

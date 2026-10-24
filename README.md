@@ -29,3 +29,7 @@ Execute `node --test tests/equity.test.js` para validar o avaliador de showdown,
 ## Edição manual
 
 Clique em qualquer mão, no Hero ou no Villain, para adicionar ou remover aquele tipo completo do range. O primeiro clique ativa “Personalizado · por clique”, preservando as demais seleções e atualizando o percentual ponderado pelas combinações, a contagem e a simulação. Os sliders ficam ocultos enquanto a seleção é personalizada, pois um percentual sozinho não descreve um range arbitrário. “Voltar aos sliders” recria o range usando os últimos ajustes automáticos. Também é possível selecionar diretamente outro modo no menu. Teclas Enter e Espaço alternam a mão focada; `aria-pressed` informa seu estado.
+
+## Participação por range
+
+A seção abaixo do showdown calcula exatamente as chances de ambos entrarem, apenas Hero, apenas Villain e nenhum entrar. As distribuições sem repetição de cartas totalizam C(52,2) × C(50,2) = 1.624.350; bloqueadores são considerados. Os resultados gerais usam a lei da probabilidade total: apenas um participante ganha automaticamente, ambos usam o showdown e nenhum participante deixa o pote sem atribuição. Não há custos, blinds, apostas ou acumulação entre rodadas; a fração média do pote não representa lucro financeiro. Cenários com ranges vazios continuam definidos. A matemática e a relação limitada com fold equity estão documentadas no item 09.
