@@ -17,3 +17,7 @@ Em “Selecionar a partir das”, escolha “Polarizado · melhores + piores”.
 ## Matemática
 
 A seção ao final da página documenta as combinações, probabilidades de distribuição, ponderação e arredondamento do range, união dos extremos no modo polarizado, score de Chen usado no código e a diferença entre frequência de distribuição e equidade. O exemplo numérico acompanha a seleção atual. Ao incluir novos cálculos no projeto, atualize essa seção com as fórmulas, hipóteses e limitações correspondentes.
+
+## Hero e Villain
+
+Dois editores independentes, lado a lado no desktop e empilhados em telas menores. Cada um mantém seu próprio range simples ou polarizado e seu exemplo matemático. O cálculo de equidade range contra range ainda não foi implementado; a seção matemática descreve os confrontos compatíveis, bloqueadores e boards necessários para essa etapa.
